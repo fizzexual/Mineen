@@ -7,6 +7,7 @@ servers/
 servers.json
 panel-config.json
 data/
+backups/
 *.log
 *.part
 

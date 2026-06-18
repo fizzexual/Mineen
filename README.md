@@ -7,15 +7,17 @@ A self-hosted, web-based control panel for managing a **PaperMC** Minecraft serv
 
 ## Features
 
-- **Manage multiple servers** — a sidebar lists every server you've added, with live status dots (online / starting / offline). Click one to manage it; switch freely between them.
-- **Add existing servers** — point the panel at a folder you already have using the built-in filesystem browser. It auto-detects the server jar and version. No need to move your files.
-- **One-click server install** — or pick a Minecraft version and the panel downloads the matching PaperMC build into a fresh folder for you.
-- **Live console** — real-time, color-coded log streaming over WebSocket, plus a command input to run console commands.
-- **Power controls** — Start / Stop / Restart the server with graceful shutdown (and a force-kill fallback).
-- **Real usage stats** — live CPU %, memory (used / allocated), and storage, sampled from the actual JVM process.
-- **File manager** — browse, edit text files in-browser, upload, download, rename, create folders, and delete — all sandboxed to the server directory.
+- **Multi-server dashboard** — a hosting-panel UI with a sidebar server switcher, live status, and an "X / Y online" count. Manage each server's Console, Players, Files, Properties, Backups, and Settings.
+- **Add servers two ways** — download a PaperMC build for any version, or point the panel at a folder you already have via the **native OS folder picker** (auto-detects the jar and version).
+- **Live telemetry graphs** — real-time CPU % and Java RAM sparklines that update as the server runs.
+- **Server health metrics** — TPS (with STABLE / BUSY / LAGGING indicator), uptime, online players, and latency.
+- **Live console** — color-coded INFO / WARN / ERROR log badges over WebSocket, with filter, log download, and a command input.
+- **Power controls** — Start / Stop / Restart / Kill, with graceful shutdown and a force-kill fallback.
+- **Auto-restart** — optionally bring a server back automatically if it crashes (per-server toggle).
+- **Players moderation** — see who's online and kick / op / de-op / ban with one click.
+- **Backups** — zip snapshots of the whole server (works while running — locked files are skipped); restore, download, or delete them.
+- **File manager** — browse, edit, upload, download, rename, and delete files, sandboxed to each server directory.
 - **Properties editor** — friendly form for `server.properties` (gamemode, difficulty, MOTD, max-players, …).
-- **Player tracking** — online player count and list parsed live from the server log.
 
 ## Requirements
 

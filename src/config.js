@@ -14,15 +14,17 @@ export const CONFIG_FILE = path.join(DATA_DIR, 'panel-config.json');
 export const SERVERS_DIR = path.join(DATA_DIR, 'servers');     // auto-created server folders live here
 export const SERVERS_FILE = path.join(DATA_DIR, 'servers.json'); // the registry of all managed servers
 export const LEGACY_SERVER_DIR = path.join(ROOT, 'server');    // single-server layout from v1 (migrated in)
+export const BACKUPS_DIR = path.join(DATA_DIR, 'backups');     // server backup .zips live here
 
 // Panel-level config (just the listen address/port).
 const PANEL_DEFAULTS = { panelPort: 9999, host: '0.0.0.0' };
 // Defaults applied to a newly created server.
-export const SERVER_DEFAULTS = { memoryMB: 2048, minMemoryMB: 1024 };
+export const SERVER_DEFAULTS = { memoryMB: 2048, minMemoryMB: 1024, autoRestart: false };
 
 export function ensureDirs() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(SERVERS_DIR)) fs.mkdirSync(SERVERS_DIR, { recursive: true });
+  if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 }
 
 // ---- Panel config ----------------------------------------------------------

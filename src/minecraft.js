@@ -19,6 +19,15 @@ export class MinecraftServer extends EventEmitter {
     this.players = new Set();
     this.startedAt = null;
     this.stdoutBuf = '';
+    this.tps = null;
+    this.history = { cpu: [], mem: [], t: [] }; // rolling telemetry for the graphs
+  }
+
+  // Append a telemetry sample (keeps the last 60 for the live charts).
+  pushTelemetry(cpu, memMB) {
+    const h = this.history;
+    h.cpu.push(cpu); h.mem.push(memMB); h.t.push(Date.now());
+    if (h.cpu.length > 60) { h.cpu.shift(); h.mem.shift(); h.t.shift(); }
   }
 
   update(desc) { this.desc = { ...this.desc, ...desc }; }
@@ -60,7 +69,9 @@ export class MinecraftServer extends EventEmitter {
       installed: this.isInstalled(),
       eulaAccepted: this.eulaAccepted(),
       startedAt: this.startedAt,
-      pid: this.proc?.pid || null
+      pid: this.proc?.pid || null,
+      tps: this.tps,
+      autoRestart: Boolean(this.desc.autoRestart)
     };
   }
 
@@ -91,10 +102,18 @@ export class MinecraftServer extends EventEmitter {
     this.proc.stderr.on('data', (d) => this.onData(d));
     this.proc.on('error', (err) => { this.pushLog(`[panel] Failed to launch java: ${err.message}`); this.cleanup(); });
     this.proc.on('exit', (code) => {
-      this.pushLog(this.state === 'stopping'
+      const wasStopping = this.state === 'stopping';
+      this.pushLog(wasStopping
         ? '[panel] Server stopped.'
         : `[panel] Server process exited unexpectedly (code ${code}).`);
       this.cleanup();
+      if (!wasStopping && this.desc.autoRestart) {
+        this.pushLog('[panel] Auto-restart is enabled — restarting in 5s…');
+        setTimeout(() => {
+          try { if (this.state === 'offline') this.start(); }
+          catch (e) { this.pushLog('[panel] Auto-restart failed: ' + e.message); }
+        }, 5000);
+      }
     });
   }
 
@@ -112,6 +131,14 @@ export class MinecraftServer extends EventEmitter {
       }, 25000);
       this.proc.once('exit', () => { clearTimeout(timer); resolve(); });
     });
+  }
+
+  // Immediately terminate the process (no graceful shutdown).
+  kill() {
+    if (!this.proc) throw new Error('Server is not running');
+    this.setState('stopping');
+    this.pushLog('[panel] Force killing server…');
+    this.forceKill(this.proc.pid);
   }
 
   async restart() {
@@ -134,6 +161,9 @@ export class MinecraftServer extends EventEmitter {
 
   write(line) { if (this.proc?.stdin?.writable) this.proc.stdin.write(line + '\n'); }
 
+  // Run a command WITHOUT echoing it to the console (used for TPS polling).
+  sendInternal(cmd) { if (this.state === 'online') this.write(cmd); }
+
   forceKill(pid) {
     if (!pid) return;
     if (process.platform === 'win32') execFile('taskkill', ['/pid', String(pid), '/T', '/F'], { windowsHide: true }, () => {});
@@ -143,6 +173,7 @@ export class MinecraftServer extends EventEmitter {
   cleanup() {
     this.proc = null;
     this.startedAt = null;
+    this.tps = null;
     this.players.clear();
     this.emitPlayers();
     this.setState('offline');
@@ -157,6 +188,9 @@ export class MinecraftServer extends EventEmitter {
 
   handleLine(line) {
     if (!line.length) return;
+    // TPS replies come from our own polling — capture the number, hide the line.
+    const tpsM = line.match(/TPS from last[^:]*:\s*\*?\s*([\d.]+)/i);
+    if (tpsM) { this.tps = Math.min(20, parseFloat(tpsM[1])); return; }
     this.pushLog(line);
     if (this.state === 'starting' && /: Done \(/.test(line)) this.setState('online');
     let m;

@@ -2,6 +2,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
+import net from 'node:net';
 import { execFile } from 'node:child_process';
 import express from 'express';
 import multer from 'multer';
@@ -12,6 +13,7 @@ import { manager } from './src/manager.js';
 import * as paper from './src/paper.js';
 import * as properties from './src/properties.js';
 import * as files from './src/files.js';
+import * as backups from './src/backups.js';
 import { processStats, storageBytes } from './src/stats.js';
 
 const isWin = process.platform === 'win32';
@@ -107,27 +109,53 @@ wss.on('connection', (ws) => {
     try {
       const m = JSON.parse(raw);
       if (m.type === 'select' && manager.has(m.serverId)) {
-        ws.send(JSON.stringify({ type: 'history', serverId: m.serverId, lines: manager.get(m.serverId).logs }));
+        const inst = manager.get(m.serverId);
+        ws.send(JSON.stringify({ type: 'history', serverId: m.serverId, lines: inst.logs, telemetry: inst.history }));
         ws.send(JSON.stringify({ type: 'state', serverId: m.serverId, state: buildState(m.serverId) }));
       }
     } catch { /* ignore */ }
   });
 });
 
-// Live resource stats for every running server.
+// TCP connect time to a running server's port, used as a "latency" readout.
+function pingLatency(port) {
+  return new Promise((resolve) => {
+    const start = performance.now();
+    const sock = net.connect({ host: '127.0.0.1', port });
+    const finish = (v) => { sock.destroy(); resolve(v); };
+    sock.on('connect', () => finish(Math.round(performance.now() - start)));
+    sock.on('error', () => finish(null));
+    sock.setTimeout(2000, () => finish(null));
+  });
+}
+
+// Live resource stats + health for every running server (drives the graphs).
 setInterval(async () => {
   if (!wss.clients.size) return;
   for (const inst of manager.instances.values()) {
     if (inst.state === 'offline') continue;
-    const { cpu, memBytes } = await processStats(inst.status().pid);
+    const st = inst.status();
+    const { cpu, memBytes } = await processStats(st.pid);
+    const memUsedMB = Math.round(memBytes / 1048576);
+    inst.pushTelemetry(cpu, memUsedMB);
+    const port = Number(properties.get(inst.dir, 'server-port', 25565)) || 25565;
+    const latency = st.state === 'online' ? await pingLatency(port) : null;
     broadcast({
       type: 'stats', serverId: inst.id, cpu,
-      memUsedMB: Math.round(memBytes / 1048576),
-      memMaxMB: inst.desc.memoryMB,
-      storageMB: Math.round(storageBytes(inst.dir) / 1048576)
+      memUsedMB, memMaxMB: inst.desc.memoryMB,
+      storageMB: Math.round(storageBytes(inst.dir) / 1048576),
+      tps: st.tps, latency,
+      players: st.players, playerCount: st.playerCount,
+      maxPlayers: Number(properties.get(inst.dir, 'max-players', '20')) || 20,
+      uptimeMs: st.startedAt ? Date.now() - st.startedAt : 0
     });
   }
 }, 2000);
+
+// Poll TPS from each online server (response is captured silently, not logged).
+setInterval(() => {
+  for (const inst of manager.instances.values()) inst.sendInternal('tps');
+}, 5000);
 
 // ---------------------------------------------------------------------------
 // Generic responders + per-server resolver
@@ -278,6 +306,7 @@ app.post('/api/servers/:id/power', async (req, res) => {
     if (action === 'start') inst.start();
     else if (action === 'stop') await inst.stop();
     else if (action === 'restart') await inst.restart();
+    else if (action === 'kill') inst.kill();
     else throw new Error('Unknown action');
     ok(res, { state: buildState(inst.id) });
   } catch (e) { fail(res, e); }
@@ -297,17 +326,18 @@ app.post('/api/servers/:id/eula', (req, res) => {
 });
 
 app.get('/api/servers/:id/settings', (req, res) => {
-  try { const d = manager.get(req.params.id).desc; ok(res, { settings: { name: d.name, memoryMB: d.memoryMB, minMemoryMB: d.minMemoryMB } }); }
+  try { const d = manager.get(req.params.id).desc; ok(res, { settings: { name: d.name, memoryMB: d.memoryMB, minMemoryMB: d.minMemoryMB, autoRestart: Boolean(d.autoRestart) } }); }
   catch (e) { fail(res, e); }
 });
 
 app.post('/api/servers/:id/settings', (req, res) => {
   try {
-    const { name, memoryMB, minMemoryMB } = req.body || {};
+    const { name, memoryMB, minMemoryMB, autoRestart } = req.body || {};
     const patch = {};
     if (typeof name === 'string' && name.trim()) patch.name = name.trim().slice(0, 40);
     if (Number.isFinite(memoryMB)) patch.memoryMB = Math.max(512, Math.floor(memoryMB));
     if (Number.isFinite(minMemoryMB)) patch.minMemoryMB = Math.max(256, Math.floor(minMemoryMB));
+    if (typeof autoRestart === 'boolean') patch.autoRestart = autoRestart;
     manager.update(req.params.id, patch);
     broadcast({ type: 'state', serverId: req.params.id, state: buildState(req.params.id) });
     broadcastServers();
@@ -364,6 +394,59 @@ const upload = multer({
 });
 app.post('/api/servers/:id/files/upload', upload.array('files'), (req, res) =>
   ok(res, { uploaded: (req.files || []).map((f) => f.originalname) }));
+
+// ---- Per-server: player moderation -----------------------------------------
+
+const PLAYER_CMDS = {
+  kick: (p) => `kick ${p}`, ban: (p) => `ban ${p}`, pardon: (p) => `pardon ${p}`,
+  op: (p) => `op ${p}`, deop: (p) => `deop ${p}`
+};
+app.post('/api/servers/:id/players/:action', (req, res) => {
+  try {
+    const fn = PLAYER_CMDS[req.params.action];
+    const player = (req.body?.player || '').trim();
+    if (!fn) throw new Error('Unknown action');
+    if (!/^[A-Za-z0-9_]{1,16}$/.test(player)) throw new Error('Invalid player name');
+    manager.get(req.params.id).sendCommand(fn(player));
+    ok(res);
+  } catch (e) { fail(res, e); }
+});
+
+// ---- Per-server: backups ---------------------------------------------------
+
+app.get('/api/servers/:id/backups', (req, res) => {
+  try { ok(res, { backups: backups.list(req.params.id) }); } catch (e) { fail(res, e); }
+});
+
+app.post('/api/servers/:id/backups', async (req, res) => {
+  try {
+    const inst = manager.get(req.params.id);
+    if (inst.state === 'online') { inst.sendInternal('save-all flush'); await new Promise((r) => setTimeout(r, 1500)); }
+    broadcast({ type: 'log', serverId: inst.id, line: '[panel] Creating backup…' });
+    const result = await backups.create(inst.id, inst.dir, Date.now());
+    broadcast({ type: 'log', serverId: inst.id, line: `[panel] Backup created: ${result.name} (${Math.round(result.size / 1048576)} MB)` });
+    ok(res, { backup: result });
+  } catch (e) { fail(res, e); }
+});
+
+app.post('/api/servers/:id/backups/restore', async (req, res) => {
+  try {
+    const inst = manager.get(req.params.id);
+    if (inst.state !== 'offline') throw new Error('Stop the server before restoring a backup');
+    await backups.restore(inst.id, inst.dir, req.body?.name || '');
+    broadcast({ type: 'log', serverId: inst.id, line: `[panel] Restored backup: ${req.body?.name}` });
+    broadcast({ type: 'state', serverId: inst.id, state: buildState(inst.id) });
+    ok(res);
+  } catch (e) { fail(res, e); }
+});
+
+app.delete('/api/servers/:id/backups', (req, res) => {
+  try { backups.remove(req.params.id, req.query.name); ok(res); } catch (e) { fail(res, e); }
+});
+
+app.get('/api/servers/:id/backups/download', (req, res) => {
+  try { res.download(backups.filePath(req.params.id, req.query.name)); } catch (e) { fail(res, e); }
+});
 
 // ---------------------------------------------------------------------------
 
