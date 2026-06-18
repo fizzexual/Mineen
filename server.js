@@ -197,18 +197,29 @@ app.post('/api/pick-folder', (req, res) => {
   const opts = { windowsHide: true, timeout: 180000 };
 
   if (isWin) {
+    // Show an invisible, top-most owner form and activate it first, so the
+    // folder dialog reliably appears in the FOREGROUND instead of behind the
+    // browser (the classic "nothing happens" symptom).
     const ps = [
       "$ErrorActionPreference='Stop'",
-      'Add-Type -AssemblyName System.Windows.Forms | Out-Null',
+      'Add-Type -AssemblyName System.Windows.Forms',
+      'Add-Type -AssemblyName System.Drawing',
+      '$owner = New-Object System.Windows.Forms.Form',
+      "$owner.StartPosition = 'CenterScreen'",
+      '$owner.Size = New-Object System.Drawing.Size(1,1)',
+      '$owner.Opacity = 0',
+      '$owner.ShowInTaskbar = $false',
+      '$owner.TopMost = $true',
+      '$owner.Show(); $owner.Activate(); $owner.BringToFront()',
+      '[System.Windows.Forms.Application]::DoEvents()',
       '$dlg = New-Object System.Windows.Forms.FolderBrowserDialog',
       "$dlg.Description = 'Select your Minecraft server folder'",
       '$dlg.ShowNewFolderButton = $false',
-      '$owner = New-Object System.Windows.Forms.Form',
-      '$owner.TopMost = $true; $owner.ShowInTaskbar = $false',
-      'if ($dlg.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($dlg.SelectedPath) }',
-      '$owner.Dispose()'
+      '$res = $dlg.ShowDialog($owner)',
+      '$owner.Close()',
+      'if ($res -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($dlg.SelectedPath) }'
     ].join('\n');
-    return execFile('powershell', ['-NoProfile', '-STA', '-Command', ps], opts, (err, stdout) => {
+    return execFile('powershell', ['-NoProfile', '-STA', '-WindowStyle', 'Hidden', '-Command', ps], opts, (err, stdout) => {
       if (err && !stdout) return fail(res, new Error('Could not open the folder picker'));
       done(stdout);
     });

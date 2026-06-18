@@ -187,13 +187,22 @@
 
   // Native folder picker (opens a real OS dialog via the backend)
   async function pickFolder() {
+    const btn = $('browse-native');
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Opening…';
     try {
       const r = await Panel.api.post('/api/pick-folder', {});
       if (r.cancelled || !r.path) return;
       $('existing-path').value = r.path;
       setExistingHint(r.path, r.isServer, r.jar);
       updateCreateBtn();
-    } catch (e) { Panel.toast(e.message || 'Could not open folder picker', 'err'); }
+    } catch (e) {
+      Panel.toast(e.message || 'Could not open the folder picker — type or paste the path instead.', 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = label;
+    }
   }
   let validateTimer;
   function onExistingInput() {
