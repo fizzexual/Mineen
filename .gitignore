@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Runtime data & generated files (machine-specific, regenerated on first run)
+server/
+servers/
+servers.json
+panel-config.json
+*.log
+*.part
+
+# Editor / tooling
+.claude/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
