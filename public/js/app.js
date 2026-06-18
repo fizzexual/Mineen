@@ -144,8 +144,8 @@
     $('i-ram').textContent = `${(s.memoryMB / 1024).toFixed(s.memoryMB % 1024 ? 1 : 0)} GB`;
     $('i-autorestart').textContent = s.autoRestart ? 'On' : 'Off';
     // health placeholders
-    $('players-val').textContent = `${s.playerCount} / ${s.maxPlayers}`;
-    if (s.state === 'offline') { setTps(null); $('latency-val').textContent = '—'; }
+    $('players-val').textContent = `${s.playerCount ?? 0} / ${s.maxPlayers ?? 20}`;
+    if (s.state !== 'online') { setTps(s.tps ?? null); $('latency-val').textContent = '—'; }
     setPower(s.state, s.installed);
     updateUptime();
     updateSwitcher();
@@ -171,7 +171,7 @@
     if (Panel.tel.cpu.length > 60) { Panel.tel.cpu.shift(); Panel.tel.mem.shift(); }
     redrawSparks();
     setTps(d.tps);
-    $('players-val').textContent = `${d.playerCount} / ${d.maxPlayers}`;
+    $('players-val').textContent = `${d.playerCount ?? 0} / ${d.maxPlayers ?? 20}`;
     $('latency-val').textContent = d.latency == null ? '—' : `${d.latency} ms`;
   }
 
@@ -197,7 +197,7 @@
       case 'players':
         if (msg.serverId === Panel.activeId) {
           Panel.state.players = msg.players; Panel.state.playerCount = msg.playerCount;
-          $('players-val').textContent = `${msg.playerCount} / ${Panel.state.maxPlayers}`;
+          $('players-val').textContent = `${msg.playerCount ?? 0} / ${Panel.state.maxPlayers ?? 20}`;
           if (!$('view-players').hidden) Panel.Players.load();
         }
         break;
@@ -320,6 +320,7 @@
     if (view === 'properties') Panel.Props.load();
     if (view === 'players') Panel.Players.load();
     if (view === 'backups') Panel.Backups.load();
+    if (view === 'schedules') Panel.Schedules.load();
     if (view === 'settings') loadSettings();
   }
 

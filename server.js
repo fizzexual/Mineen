@@ -8,7 +8,7 @@ import express from 'express';
 import multer from 'multer';
 import { WebSocketServer } from 'ws';
 
-import { PUBLIC_DIR, SERVERS_DIR, ensureDirs, loadConfig, looksLikeServer, detectJar } from './src/config.js';
+import { PUBLIC_DIR, SERVERS_DIR, ensureDirs, loadConfig, looksLikeServer, detectJar, newId } from './src/config.js';
 import { manager } from './src/manager.js';
 import * as paper from './src/paper.js';
 import * as properties from './src/properties.js';
@@ -447,6 +447,68 @@ app.delete('/api/servers/:id/backups', (req, res) => {
 app.get('/api/servers/:id/backups/download', (req, res) => {
   try { res.download(backups.filePath(req.params.id, req.query.name)); } catch (e) { fail(res, e); }
 });
+
+// ---- Per-server: schedules (timed auto-restart / auto-backup) ---------------
+
+app.get('/api/servers/:id/schedules', (req, res) => {
+  try { ok(res, { schedules: manager.get(req.params.id).desc.schedules || [] }); } catch (e) { fail(res, e); }
+});
+
+app.post('/api/servers/:id/schedules', (req, res) => {
+  try {
+    const inst = manager.get(req.params.id);
+    const { action, everyMinutes } = req.body || {};
+    if (!['restart', 'backup'].includes(action)) throw new Error('Unknown schedule action');
+    const sched = { id: newId(), action, everyMinutes: Math.max(5, Math.floor(Number(everyMinutes)) || 60), enabled: true };
+    inst.desc.schedules = [...(inst.desc.schedules || []), sched];
+    manager.persist();
+    ok(res, { schedule: sched });
+  } catch (e) { fail(res, e); }
+});
+
+app.post('/api/servers/:id/schedules/:sid/toggle', (req, res) => {
+  try {
+    const inst = manager.get(req.params.id);
+    const s = (inst.desc.schedules || []).find((x) => x.id === req.params.sid);
+    if (!s) throw new Error('Schedule not found');
+    s.enabled = !s.enabled;
+    manager.persist();
+    ok(res, { schedule: s });
+  } catch (e) { fail(res, e); }
+});
+
+app.delete('/api/servers/:id/schedules/:sid', (req, res) => {
+  try {
+    const inst = manager.get(req.params.id);
+    inst.desc.schedules = (inst.desc.schedules || []).filter((x) => x.id !== req.params.sid);
+    manager.persist();
+    ok(res);
+  } catch (e) { fail(res, e); }
+});
+
+// Run due schedules. lastRun is in-memory, so each fires one interval after boot.
+const scheduleLastRun = new Map();
+setInterval(async () => {
+  const now = Date.now();
+  for (const inst of manager.instances.values()) {
+    for (const s of inst.desc.schedules || []) {
+      if (!s.enabled) continue;
+      const key = `${inst.id}:${s.id}`;
+      if (!scheduleLastRun.has(key)) { scheduleLastRun.set(key, now); continue; }
+      if (now - scheduleLastRun.get(key) < s.everyMinutes * 60000) continue;
+      scheduleLastRun.set(key, now);
+      try {
+        if (s.action === 'restart') {
+          if (inst.state === 'online') { broadcast({ type: 'log', serverId: inst.id, line: '[panel] Scheduled restart…' }); await inst.restart(); }
+        } else if (s.action === 'backup') {
+          if (inst.state === 'online') { inst.sendInternal('save-all flush'); await new Promise((r) => setTimeout(r, 1500)); }
+          await backups.create(inst.id, inst.dir, Date.now());
+          broadcast({ type: 'log', serverId: inst.id, line: '[panel] Scheduled backup created.' });
+        }
+      } catch (e) { broadcast({ type: 'log', serverId: inst.id, line: `[panel] Scheduled ${s.action} failed: ${e.message}` }); }
+    }
+  }
+}, 30000);
 
 // ---------------------------------------------------------------------------
 

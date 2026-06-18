@@ -5,7 +5,8 @@
   Players.load = function () {
     const box = $('players-list');
     const list = Panel.state.players || [];
-    $('players-head-count').textContent = `(${list.length}/${Panel.state.maxPlayers || 20})`;
+    const max = Panel.state.maxPlayers ?? 20;
+    $('players-head-count').textContent = `(${list.length}/${max})`;
     if (Panel.state.state !== 'online') {
       box.innerHTML = '<div class="empty-line">Server is offline — start it to manage players.</div>';
       return;
@@ -13,7 +14,11 @@
     if (!list.length) { box.innerHTML = '<div class="empty-line">No players online.</div>'; return; }
     box.innerHTML = list.map((p) => {
       const e = Panel.esc(p);
-      return `<div class="player-row"><span class="av"></span><span class="p-name">${e}</span>
+      return `<div class="player-row">
+        <img class="av-head" src="https://mc-heads.net/avatar/${encodeURIComponent(p)}/40" alt="" loading="lazy"
+             onerror="this.src='https://mc-heads.net/avatar/MHF_Steve/40'">
+        <span class="p-name">${e}</span>
+        <span class="p-online"><span class="status-dot"></span>online</span>
         <div class="p-actions">
           <button class="btn btn-sm" data-act="op" data-p="${e}">OP</button>
           <button class="btn btn-sm" data-act="deop" data-p="${e}">De-OP</button>
