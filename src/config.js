@@ -5,11 +5,15 @@ import crypto from 'node:crypto';
 
 export const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 export const PUBLIC_DIR = path.join(ROOT, 'public');
-export const CONFIG_FILE = path.join(ROOT, 'panel-config.json');
 
-export const SERVERS_DIR = path.join(ROOT, 'servers');     // auto-created server folders live here
-export const SERVERS_FILE = path.join(ROOT, 'servers.json'); // the registry of all managed servers
-export const LEGACY_SERVER_DIR = path.join(ROOT, 'server');  // single-server layout from v1 (migrated in)
+// All mutable data (registry, panel config, auto-downloaded servers) lives under
+// DATA_DIR. It defaults to the app root, so local installs are unaffected; set
+// DATA_DIR (e.g. in Docker) to point it at a mounted volume that survives restarts.
+export const DATA_DIR = process.env.DATA_DIR ? path.resolve(process.env.DATA_DIR) : ROOT;
+export const CONFIG_FILE = path.join(DATA_DIR, 'panel-config.json');
+export const SERVERS_DIR = path.join(DATA_DIR, 'servers');     // auto-created server folders live here
+export const SERVERS_FILE = path.join(DATA_DIR, 'servers.json'); // the registry of all managed servers
+export const LEGACY_SERVER_DIR = path.join(ROOT, 'server');    // single-server layout from v1 (migrated in)
 
 // Panel-level config (just the listen address/port).
 const PANEL_DEFAULTS = { panelPort: 9999, host: '0.0.0.0' };
@@ -17,6 +21,7 @@ const PANEL_DEFAULTS = { panelPort: 9999, host: '0.0.0.0' };
 export const SERVER_DEFAULTS = { memoryMB: 2048, minMemoryMB: 1024 };
 
 export function ensureDirs() {
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(SERVERS_DIR)) fs.mkdirSync(SERVERS_DIR, { recursive: true });
 }
 

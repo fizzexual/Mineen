@@ -1,0 +1,13 @@
+services:
+  mineen:
+    # Pull the published image from GitHub Container Registry…
+    image: ghcr.io/fizzexual/mineen:latest
+    # …or build it locally instead: comment the line above and uncomment this.
+    # build: .
+    container_name: mineen
+    restart: unless-stopped
+    ports:
+      - "9999:9999"      # Panel web UI  ->  http://localhost:9999
+      - "25565:25565"    # Minecraft server (publish one port per server you run)
+    volumes:
+      - ./data:/data     # Persists the registry, config, and downloaded servers

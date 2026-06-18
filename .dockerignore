@@ -1,0 +1,22 @@
+node_modules
+npm-debug.log*
+
+# Runtime data — must never be baked into the image
+data
+server
+servers
+servers.json
+panel-config.json
+*.log
+*.part
+
+# VCS / CI / tooling / docs not needed at runtime
+.git
+.github
+.gitignore
+.claude
+.dockerignore
+Dockerfile
+docker-compose.yml
+.DS_Store
+Thumbs.db

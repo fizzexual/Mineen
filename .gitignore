@@ -6,6 +6,7 @@ server/
 servers/
 servers.json
 panel-config.json
+data/
 *.log
 *.part
 
