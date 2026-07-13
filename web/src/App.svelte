@@ -13,6 +13,9 @@
   import Console from './views/Console.svelte';
   import Config from './views/Config.svelte';
   import Files from './views/Files.svelte';
+  import Players from './views/Players.svelte';
+  import Backups from './views/Backups.svelte';
+  import Automation from './views/Automation.svelte';
   import ComingSoon from './views/ComingSoon.svelte';
 
   import { createSocket } from './lib/ws.js';
@@ -139,6 +142,12 @@
           <Files />
         {:else if view === 'properties'}
           <Config />
+        {:else if view === 'players'}
+          <Players />
+        {:else if view === 'backups'}
+          <Backups />
+        {:else if view === 'schedules'}
+          <Automation />
         {:else}
           <ComingSoon {view} />
         {/if}
