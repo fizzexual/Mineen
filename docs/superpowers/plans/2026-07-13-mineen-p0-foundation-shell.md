@@ -1025,10 +1025,11 @@ Expected: FAIL — cannot resolve the component.
 
   let query = $state('');
   let selected = $state(0);
+  let inputEl = $state(null);
 
   const results = $derived(filterCommands($commands, query));
 
-  $effect(() => { if ($paletteOpen) { query = ''; selected = 0; } });
+  $effect(() => { if ($paletteOpen) { query = ''; selected = 0; inputEl?.focus(); } });
   $effect(() => { if (selected >= results.length) selected = 0; });
 
   function onKey(e) {
@@ -1041,12 +1042,12 @@ Expected: FAIL — cannot resolve the component.
   function run(cmd) { if (!cmd) return; closePalette(); cmd.run(); }
 </script>
 
-<svelte:window on:keydown={onKey} />
+<svelte:window onkeydown={onKey} />
 
 {#if $paletteOpen}
   <div class="cp-overlay" onclick={closePalette} role="presentation">
     <div class="cp" onclick={(e) => e.stopPropagation()} role="dialog" aria-label="Command palette">
-      <input class="cp-input" placeholder="Type a command…" bind:value={query} autofocus />
+      <input class="cp-input" placeholder="Type a command…" bind:value={query} bind:this={inputEl} />
       <div class="cp-list">
         {#each results as cmd, i (cmd.id)}
           <button class="cp-item {i === selected ? 'sel' : ''}" onmouseenter={() => (selected = i)} onclick={() => run(cmd)}>
@@ -1933,7 +1934,7 @@ Expected: FAIL (App still the Task 1 stub — no "No servers yet").
   });
 </script>
 
-<svelte:window on:keydown={onKey} />
+<svelte:window onkeydown={onKey} />
 
 <div class="shell">
   <Sidebar {view} onnavigate={(v) => (view = v)} />
