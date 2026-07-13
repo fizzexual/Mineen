@@ -143,10 +143,11 @@ Expected: dependencies resolve, `node_modules` populated, no error exit.
 ```js
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { svelteTesting } from '@testing-library/svelte/vite';
 
 export default defineConfig({
   root: 'web',
-  plugins: [svelte()],
+  plugins: [svelte(), svelteTesting()],
   build: {
     outDir: '../web/dist',
     emptyOutDir: true
@@ -166,6 +167,8 @@ export default defineConfig({
   }
 });
 ```
+
+`svelteTesting()` (from `@testing-library/svelte/vite`) adds Svelte's `browser` resolve condition during Vitest runs only (gated internally on `process.env.VITEST`), so `.svelte` files compile in browser mode for component tests without changing `vite build`/`vite dev` behavior. This is required for any test that renders a `.svelte` file via `@testing-library/svelte` (e.g. Task 11's `CommandPalette.test.js`) — without it, Vitest resolves Svelte's SSR build and `mount()` throws `lifecycle_function_unavailable`.
 
 - [ ] **Step 4: Create `web/src/test-setup.js`**
 

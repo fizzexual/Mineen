@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { svelteTesting } from '@testing-library/svelte/vite';
 
 export default defineConfig({
   root: 'web',
-  plugins: [svelte()],
+  plugins: [svelte(), svelteTesting()],
   build: {
     outDir: '../web/dist',
     emptyOutDir: true
