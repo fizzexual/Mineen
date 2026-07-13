@@ -906,6 +906,16 @@ describe('filterCommands', () => {
     const r = filterCommands(cmds, 'sto');
     expect(r[0].id).toBe('stop');
   });
+  it('ranks a more contiguous match above a scattered one when both match', () => {
+    const r = filterCommands([
+      { id: 'start', label: 'Start server' },
+      { id: 'server', label: 'Server' }
+    ], 'se');
+    const ids = r.map((c) => c.id);
+    expect(ids).toContain('server');
+    expect(ids).toContain('start');
+    expect(r[0].id).toBe('server'); // "Server" (contiguous s-e) outranks "Start server" (scattered)
+  });
 });
 ```
 
