@@ -144,6 +144,7 @@ Svelte stores subscribe to the WS connection for all live state; REST endpoints 
 - **Bundled JRE size.** Shipping/downloading a Temurin JRE adds weight. Mitigation: download on demand, per required major version, cached and shared across servers.
 - **Forge/NeoForge headless install** can be finicky across versions. Budget integration testing per loader.
 - **Single-process model** means one misbehaving server shares the host with others. Acceptable for the target user in v1; Docker isolation is a documented future option.
+- **No authentication — roadmap-critical (flagged by P0 final review).** The panel binds `0.0.0.0` with zero auth while exposing console commands (`/command`), path-jailed file read/write/delete, and filesystem enumeration (`/api/browse`) — effectively unauthenticated RCE on the LAN. Acceptable for P0's localhost focus, but **an auth layer (or binding the panel to loopback and exposing only the game port) MUST land before P2 "Share with Friends,"** which pushes the panel toward the internet via UPnP/playit. Add to the P1/P2 threat model.
 
 ---
 
