@@ -2,14 +2,15 @@
   import { onMount } from 'svelte';
   import { get } from 'svelte/store';
   import Sidebar from './components/Sidebar.svelte';
-  import Topbar from './components/Topbar.svelte';
+  import ServerHeader from './components/ServerHeader.svelte';
+  import Tabs from './components/Tabs.svelte';
   import Toast from './components/Toast.svelte';
   import CommandPalette from './components/CommandPalette.svelte';
   import AddServerModal from './components/AddServerModal.svelte';
   import EulaModal from './components/EulaModal.svelte';
   import EmptyState from './views/EmptyState.svelte';
+  import Overview from './views/Overview.svelte';
   import Console from './views/Console.svelte';
-  import Dashboard from './views/Dashboard.svelte';
   import ComingSoon from './views/ComingSoon.svelte';
 
   import { createSocket } from './lib/ws.js';
@@ -21,14 +22,11 @@
   import { toast } from './stores/toast.js';
   import { openPalette, setCommands } from './stores/palette.js';
 
-  let view = $state('console');
+  let view = $state('dashboard');
   let socket;
   let addOpen = $state(false);
   let eulaOpen = $state(false);
   let installProgress = $state(null);
-
-  const views = { console: Console, dashboard: Dashboard };
-  const Current = $derived(views[view]);
 
   // Re-select on the socket whenever the active server changes.
   let lastSelected = null;
@@ -104,10 +102,9 @@
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); }
   }
 
-  // Command palette registry. Its run: closures re-read the live $state when
-  // invoked, so this doesn't need to be reactive to view/servers changes.
+  // Command palette registry. Its run: closures re-read the live $state when invoked.
   setCommands([
-    { id: 'nav-dashboard', label: 'Go to Dashboard', group: 'Navigate', run: () => (view = 'dashboard') },
+    { id: 'nav-overview', label: 'Go to Overview', group: 'Navigate', run: () => (view = 'dashboard') },
     { id: 'nav-console', label: 'Go to Console', group: 'Navigate', run: () => (view = 'console') },
     { id: 'add', label: 'Add a server', group: 'Server', run: () => (addOpen = true) }
   ]);
@@ -123,20 +120,25 @@
 
 <div class="shell">
   <Sidebar {view} onnavigate={(v) => (view = v)} />
-  <div class="main">
-    <Topbar onadd={() => (addOpen = true)} onneedsEula={() => (eulaOpen = true)} />
-    <div class="content">
-      {#if $servers.length === 0}
-        <EmptyState onadd={() => (addOpen = true)} />
-      {:else}
-        {#if views[view]}
-          <Current onneedsEula={() => (eulaOpen = true)} />
+  <main class="main">
+    {#if $servers.length === 0}
+      <EmptyState onadd={() => (addOpen = true)} />
+    {:else}
+      <div class="head-area">
+        <ServerHeader onneedsEula={() => (eulaOpen = true)} />
+        <Tabs active={view} ontab={(v) => (view = v)} />
+      </div>
+      <div class="content">
+        {#if view === 'dashboard'}
+          <Overview onfulllog={() => (view = 'console')} onneedsEula={() => (eulaOpen = true)} />
+        {:else if view === 'console'}
+          <Console />
         {:else}
           <ComingSoon {view} />
         {/if}
-      {/if}
-    </div>
-  </div>
+      </div>
+    {/if}
+  </main>
 </div>
 
 <AddServerModal open={addOpen} {installProgress} oncreated={onCreated} onclose={() => (addOpen = false)} />
@@ -145,7 +147,7 @@
 <Toast />
 
 <style>
-  .shell { display: flex; height: 100vh; }
-  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-  .content { flex: 1; overflow-y: auto; padding: 22px; }
+  .shell { display: flex; height: 100vh; background: var(--bg); }
+  .main { flex: 1; min-width: 0; overflow-y: auto; padding: 26px 32px 44px; display: flex; flex-direction: column; gap: 22px; }
+  .head-area { display: flex; flex-direction: column; gap: 18px; }
 </style>

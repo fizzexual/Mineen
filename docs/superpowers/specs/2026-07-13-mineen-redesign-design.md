@@ -36,7 +36,7 @@ The **non-technical person hosting Minecraft for their friends.** Every trade-of
 |---|---|---|---|
 | D1 | Positioning | **Beginner-first, "it just works" for friends** | Research shows this is the unclaimed whitespace; incumbents are strong on power-user/multi-node and weak here. |
 | D2 | v1 scope | **Ambitious, phased** | User wants feature-rich; phasing keeps each stage shippable and great. |
-| D3 | Share with Friends | **UPnP auto-forward first → playit.gg tunnel fallback** | UPnP uses the user's own IP with no third party; playit guarantees it works for *everyone*, including CGNAT. Robust and matches "it just works." |
+| D3 | Share with Friends | **Hoster owns connectivity — UPnP auto-forward + guided manual port-forward + reachability check; NO bundled tunnel** | Keeps MineEN dependency-free (no third-party relay/ToS) and leaves the hoster in control of their own network. CGNAT users are guided to their own fix (ISP / mesh VPN). *(Revised 2026-07-13 per user: playit.gg removed.)* |
 | D4 | Server types | **Full Java multi-loader + Geyser cross-play** | Vanilla/Paper/Purpur (plugins) + Fabric/Forge/NeoForge (mods/modpacks) covers every modpack ecosystem; Geyser lets Bedrock (phone/console) friends join without a second server. |
 | D5 | Backend | **Keep & refactor the existing Node engine** | The current process manager, WS console, telemetry, file manager, and backups are already the right shape for a lightweight Docker-free panel. Rewriting earns nothing. |
 | D6 | Frontend | **Svelte + Vite, compiled to static assets served by Express** | The UI is large and real-time; a compile-away framework keeps it polished and maintainable with a tiny runtime. The build step is dev-only — end users still run one command. |
@@ -73,7 +73,7 @@ One Node process — **MineEN Core** — serves a compiled Svelte single-page ap
 - `provisioner` — installs and version-lists **Vanilla** (Mojang manifest), **Paper**/**Purpur** (their build APIs), **Fabric** (Fabric meta + server launcher), **Forge** / **NeoForge** (installer jars, run headless). Normalizes "server type + MC version + loader version → runnable jar/launch command."
 - `java` — detect installed JREs and their versions; map each MC version to its required Java (8 / 17 / 21); if missing, offer to download a bundled **Temurin** JRE and pin it per server. Eliminates the #1 silent-crash cause.
 - `content` — **Modrinth**-first mod/plugin/modpack integration: search (faceted by loader + game version), version resolution, **automatic dependency resolution**, hash-verified download into `mods/` or `plugins/`, and `.mrpack` modpack install (parse `modrinth.index.json`, apply `overrides/` + `server-overrides/`, auto-select loader). **CurseForge** as a secondary source (gated API key, handles download-disabled mods gracefully by prompting manual placement).
-- `network` — **UPnP** (IGD) port mapping; a **reachability probe** that verifies the port is actually reachable from outside before declaring success; and the **playit.gg** agent lifecycle (download the official signed binary, verify checksum, run, parse the assigned public address) used as automatic fallback. Produces the shareable join link + QR and drives the status page.
+- `network` — **UPnP** (IGD) port mapping + a **reachability probe** that verifies the port is actually reachable from outside before declaring success + **guided manual port-forward** instructions (per-router). Produces the copyable game-server address + QR and drives the status page. **No bundled tunnel** — the hoster owns connectivity; CGNAT users are pointed to their own solution (ISP / mesh VPN). *(playit.gg removed 2026-07-13 per user.)*
 - `doctor` — crash/log analyzer. A rule set maps common failure signatures → plain-language diagnosis + a one-click fix: Java version mismatch, port already in use, missing/incompatible mod dependency, out-of-memory, corrupted world/region, EULA not accepted, wrong loader. Runs automatically on unexpected exit and is available on-demand over any log.
 - `optimize` — apply **Aikar's flags** and right-size `-Xmx`/`-Xms` from detected system memory (leaving OS + JVM headroom), with a plain-language "here's what changed and why."
 
@@ -101,7 +101,7 @@ Compiled to static files served by Express. App shell features:
 
 ## 4. Feature set (v1, full)
 
-Onboarding wizard · multi-loader provisioning · Java auto-management · Aikar/RAM optimize · **Share-with-Friends** (UPnP + playit + QR + status page) · **Modrinth mods/plugins browser** · **one-click modpacks** · **Geyser cross-play** · **crash-doctor** · backups with rotation + one-click restore · world manager (swap/upload/reset) · visual **MOTD + icon editor** · live **player-head avatars** · plain-English settings editor · automation/scheduler · **Discord bridge** · **BlueMap** world map · **spark** profiling · command-palette premium real-time shell.
+Onboarding wizard · multi-loader provisioning · Java auto-management · Aikar/RAM optimize · **Share-with-Friends** (UPnP + guided port-forward + reachability + QR + status page) · **Modrinth mods/plugins browser** · **one-click modpacks** · **Geyser cross-play** · **crash-doctor** · backups with rotation + one-click restore · world manager (swap/upload/reset) · visual **MOTD + icon editor** · live **player-head avatars** · plain-English settings editor · automation/scheduler · **Discord bridge** · **BlueMap** world map · **spark** profiling · command-palette premium real-time shell.
 
 ---
 
@@ -111,7 +111,7 @@ Each phase is independently shippable and leaves the product visibly better.
 
 - **P0 — Foundation & identity.** Refactor the engine into the clean module boundaries above. Stand up the Svelte + Vite shell served by Express, with the MineEN design system, command palette, and real-time plumbing. Port every existing feature (console, files, properties, backups, players, schedules, telemetry) into the new shell. **Remove all ZeroCloud branding and placeholder copy.** → Already a better product than today.
 - **P1 — The magic front door.** Onboarding wizard + `provisioner` (multi-loader) + `java` manager + `optimize`. Time-to-first-server < 2 minutes, no terminal.
-- **P2 — Share with Friends.** `network`: UPnP → reachability probe → playit fallback → join link/QR + `status` page.
+- **P2 — Share with Friends.** `network`: UPnP + guided manual port-forward + reachability probe → copyable address/QR + `status` page. No bundled tunnel — the hoster owns connectivity.
 - **P3 — Content.** `content`: Modrinth browser, one-click install with dependency resolution, one-click `.mrpack` modpacks, Geyser cross-play toggle.
 - **P4 — Reliability.** `doctor` (crash diagnosis) + `backups+` (rotation/restore/off-site) + `world` manager.
 - **P5 — Delight & social.** `identity` (MOTD/icon/heads) + `map` (BlueMap) + `discord` bridge + `profiler` (spark) + PWA polish.
@@ -138,7 +138,7 @@ Svelte stores subscribe to the WS connection for all live state; REST endpoints 
 
 ## 7. Risks & open questions
 
-- **playit.gg dependency.** Fallback path relies on a third party's relay + binary. Mitigation: it's opt-in (only when UPnP fails), we verify the official signed binary, and UPnP/manual remains available. Their free tier gives a random `*.joinmc.link` subdomain — acceptable for v1.
+- **CGNAT / can't-port-forward users.** With no bundled tunnel (per the 2026-07-13 decision to remove playit), hosters behind CGNAT must solve connectivity themselves (ISP, a mesh VPN like Tailscale, or their own relay). MineEN guides them + verifies reachability but doesn't provide the tunnel — an accepted trade-off for dependency-freedom.
 - **Reachability probe.** A true "reachable from the internet" check requires something outside the LAN. Options to resolve in planning: a tiny hosted check endpoint, a public port-check service, or inferring success from the tunnel. Lowest-dependency option wins.
 - **CurseForge API key.** Gated, non-distributable, and some mods are download-disabled. Lead with Modrinth; treat CurseForge as best-effort with graceful manual-placement prompts.
 - **Bundled JRE size.** Shipping/downloading a Temurin JRE adds weight. Mitigation: download on demand, per required major version, cached and shared across servers.

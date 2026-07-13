@@ -1,43 +1,56 @@
 :root[data-theme='dark'],
 :root {
   color-scheme: dark;
-  --bg: #08090c;
-  --surface-1: #0e1015;
-  --surface-2: #14171d;
-  --surface-3: #1b1f27;
-  --border: #232833;
-  --text: #e7e9ee;
-  --text-dim: #a2a8b4;
-  --text-mut: #6b7280;
-  --accent: #34d399;
-  --accent-dim: #0f2f26;
-  --accent-ink: #041b13;
-  --ok: #34d399;
-  --warn: #fbbf24;
-  --bad: #f87171;
-  --info: #60a5fa;
-  --r-sm: 7px;
-  --r-md: 11px;
-  --r-lg: 16px;
-  --shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.7);
-  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --bg: #14161c;
+  --sidebar: #181b22;
+  --surface-1: #1c1f27;
+  --surface-2: #232833;
+  --surface-3: #2a2f3b;
+  --border: #262b35;
+  --border-soft: #21252e;
+  --text: #e8eaef;
+  --text-dim: #98a0ac;
+  --text-mut: #626976;
+  --accent: #3b82f6;
+  --accent-hover: #4c8ef8;
+  --accent-dim: #1a2740;
+  --accent-ink: #ffffff;
+  --ok: #35d07f;
+  --ok-weak: rgba(53, 208, 127, 0.12);
+  --warn: #f0b23e;
+  --bad: #ef5b6b;
+  --bad-weak: rgba(239, 91, 107, 0.10);
+  --info: #4c8ef8;
+  --chart: #a78bfa;
+  --chart-weak: rgba(167, 139, 250, 0.14);
+  --role-owner: #e6b450;
+  --role-admin: #4c8ef8;
+  --role-mod: #35d07f;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 14px;
+  --shadow: 0 16px 44px -18px rgba(0, 0, 0, 0.6);
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --mono: 'JetBrains Mono', 'Cascadia Code', ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --bg: #f4f5f7;
+  --bg: #eef1f5;
+  --sidebar: #ffffff;
   --surface-1: #ffffff;
-  --surface-2: #f7f8fa;
-  --surface-3: #eef0f3;
-  --border: #e2e5ea;
-  --text: #14171d;
-  --text-dim: #4b5563;
+  --surface-2: #f3f5f8;
+  --surface-3: #e9edf2;
+  --border: #e2e6ec;
+  --border-soft: #eceff3;
+  --text: #171a21;
+  --text-dim: #566072;
   --text-mut: #8a92a0;
-  --accent: #059669;
-  --accent-dim: #d1fae5;
+  --accent: #2f6fe0;
+  --accent-hover: #2a63c9;
+  --accent-dim: #dfe9fd;
   --accent-ink: #ffffff;
-  --shadow: 0 12px 40px -16px rgba(20, 23, 29, 0.25);
+  --shadow: 0 16px 44px -22px rgba(20, 23, 29, 0.22);
 }
 
 * { box-sizing: border-box; }
@@ -55,4 +68,4 @@ body {
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 button { font: inherit; color: inherit; cursor: pointer; }
 input, select, textarea { font: inherit; }
-.mono { font-family: var(--mono); }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
