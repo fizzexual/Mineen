@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 
 export const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 export const PUBLIC_DIR = path.join(ROOT, 'public');
+export const WEB_DIST = path.join(ROOT, 'web', 'dist');
 
 // All mutable data (registry, panel config, auto-downloaded servers) lives under
 // DATA_DIR. It defaults to the app root, so local installs are unaffected; set

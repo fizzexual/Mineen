@@ -8,7 +8,7 @@ import express from 'express';
 import multer from 'multer';
 import { WebSocketServer } from 'ws';
 
-import { PUBLIC_DIR, SERVERS_DIR, ensureDirs, loadConfig, looksLikeServer, detectJar, newId } from './src/config.js';
+import { PUBLIC_DIR, WEB_DIST, SERVERS_DIR, ensureDirs, loadConfig, looksLikeServer, detectJar, newId } from './src/config.js';
 import { manager } from './src/manager.js';
 import * as paper from './src/paper.js';
 import * as properties from './src/properties.js';
@@ -23,7 +23,7 @@ manager.init();
 
 const app = express();
 app.use(express.json({ limit: '20mb' }));
-app.use(express.static(PUBLIC_DIR));
+app.use(express.static(WEB_DIST));
 
 const httpServer = http.createServer(app);
 const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
@@ -168,6 +168,8 @@ const dirOf = (req) => manager.get(req.params.id).dir;
 // ---- Server registry -------------------------------------------------------
 
 app.get('/api/servers', (req, res) => ok(res, { servers: listServers() }));
+
+app.get('/api/panel', (req, res) => ok(res, { name: 'MineEN', version: '2.0.0', lanIp: lanIp() }));
 
 app.post('/api/servers', async (req, res) => {
   const { mode, name, version, path: folder } = req.body || {};
@@ -511,6 +513,9 @@ setInterval(async () => {
 }, 30000);
 
 // ---------------------------------------------------------------------------
+
+// Any non-API GET falls through to the SPA entry (client renders the view).
+app.get(/^\/(?!api|ws).*/, (req, res) => res.sendFile(path.join(WEB_DIST, 'index.html')));
 
 const cfg = loadConfig();
 httpServer.listen(cfg.panelPort, cfg.host, () => {
