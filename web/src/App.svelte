@@ -11,6 +11,8 @@
   import EmptyState from './views/EmptyState.svelte';
   import Overview from './views/Overview.svelte';
   import Console from './views/Console.svelte';
+  import Config from './views/Config.svelte';
+  import Files from './views/Files.svelte';
   import ComingSoon from './views/ComingSoon.svelte';
 
   import { createSocket } from './lib/ws.js';
@@ -133,6 +135,10 @@
           <Overview onfulllog={() => (view = 'console')} onneedsEula={() => (eulaOpen = true)} />
         {:else if view === 'console'}
           <Console />
+        {:else if view === 'files'}
+          <Files />
+        {:else if view === 'properties'}
+          <Config />
         {:else}
           <ComingSoon {view} />
         {/if}

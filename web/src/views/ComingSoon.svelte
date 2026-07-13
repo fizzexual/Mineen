@@ -5,7 +5,7 @@
 <section class="soon">
   <div class="glyph">◔</div>
   <h2>{label} is coming soon</h2>
-  <p>This part of MineEN isn't built yet — it's on the roadmap for an upcoming update. Console and Dashboard are live now.</p>
+  <p>This part of MineEN isn't built yet — it's on the roadmap for an upcoming update. Overview, Console, Files and Config are live now.</p>
 </section>
 <style>
   .soon { max-width: 440px; margin: 14vh auto 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
