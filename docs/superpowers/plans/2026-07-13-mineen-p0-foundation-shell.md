@@ -1048,8 +1048,8 @@ Expected: FAIL — cannot resolve the component.
 <svelte:window onkeydown={onKey} />
 
 {#if $paletteOpen}
-  <div class="cp-overlay" onclick={closePalette} role="presentation">
-    <div class="cp" onclick={(e) => e.stopPropagation()} role="dialog" aria-label="Command palette">
+  <div class="cp-overlay" onclick={(e) => { if (e.target === e.currentTarget) closePalette(); }} role="presentation">
+    <div class="cp" role="dialog" aria-label="Command palette">
       <input class="cp-input" placeholder="Type a command…" bind:value={query} bind:this={inputEl} />
       <div class="cp-list">
         {#each results as cmd, i (cmd.id)}
@@ -1575,8 +1575,8 @@ git commit -m "feat(ui): real-time dashboard view"
   let { title, onclose, children } = $props();
 </script>
 
-<div class="overlay" onclick={onclose} role="presentation">
-  <div class="modal" onclick={(e) => e.stopPropagation()} role="dialog" aria-label={title}>
+<div class="overlay" onclick={(e) => { if (e.target === e.currentTarget) onclose(); }} role="presentation">
+  <div class="modal" role="dialog" aria-label={title}>
     <div class="head"><h3>{title}</h3><button class="x" onclick={onclose}>✕</button></div>
     <div class="body">{@render children?.()}</div>
   </div>
