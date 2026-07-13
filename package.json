@@ -1,6 +1,6 @@
 {
   "name": "mineen-panel",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Advanced self-hosted Minecraft server control panel (PaperMC)",
   "type": "module",
   "main": "server.js",

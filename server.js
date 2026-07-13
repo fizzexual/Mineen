@@ -8,7 +8,7 @@ import express from 'express';
 import multer from 'multer';
 import { WebSocketServer } from 'ws';
 
-import { PUBLIC_DIR, WEB_DIST, SERVERS_DIR, ensureDirs, loadConfig, looksLikeServer, detectJar, newId } from './src/config.js';
+import { WEB_DIST, SERVERS_DIR, ensureDirs, loadConfig, looksLikeServer, detectJar, newId } from './src/config.js';
 import { manager } from './src/manager.js';
 import * as paper from './src/paper.js';
 import * as properties from './src/properties.js';
