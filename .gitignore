@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Frontend build output (Vite)
+web/dist/
+
 # Runtime data & generated files (machine-specific, regenerated on first run)
 server/
 servers/

@@ -6,7 +6,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "dev:web": "vite",
+    "build": "vite build",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest"
   },
   "keywords": [
     "minecraft",
@@ -22,5 +26,14 @@
     "multer": "^1.4.5-lts.1",
     "unzipper": "^0.12.3",
     "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/svelte": "^5.2.6",
+    "svelte": "^5.19.0",
+    "jsdom": "^26.0.0",
+    "vite": "^6.0.7",
+    "vitest": "^3.0.2"
   }
 }
