@@ -10,6 +10,7 @@
   import EmptyState from './views/EmptyState.svelte';
   import Console from './views/Console.svelte';
   import Dashboard from './views/Dashboard.svelte';
+  import ComingSoon from './views/ComingSoon.svelte';
 
   import { createSocket } from './lib/ws.js';
   import { api, sUrl } from './lib/api.js';
@@ -18,7 +19,7 @@
   import { pushStats, seedTelemetry, resetTelemetry } from './stores/telemetry.js';
   import { setLog, appendLog } from './stores/consoleLog.js';
   import { toast } from './stores/toast.js';
-  import { openPalette, closePalette, setCommands } from './stores/palette.js';
+  import { openPalette, setCommands } from './stores/palette.js';
 
   let view = $state('console');
   let socket;
@@ -27,7 +28,7 @@
   let installProgress = $state(null);
 
   const views = { console: Console, dashboard: Dashboard };
-  const Current = $derived(views[view] ?? Console);
+  const Current = $derived(views[view]);
 
   // Re-select on the socket whenever the active server changes.
   let lastSelected = null;
@@ -44,6 +45,7 @@
   async function loadActive(id) {
     try {
       const [a, b] = await Promise.all([api.get(sUrl(id, '/state')), api.get(sUrl(id, '/logs'))]);
+      if (id !== get(activeId)) return; // a newer switch won the race
       activeState.set(a.state);
       setLog(b.lines);
     } catch (e) { toast(e.message, 'err'); }
@@ -62,7 +64,10 @@
         if (msg.serverId === get(activeId)) appendLog(msg.line);
         break;
       case 'state':
-        if (msg.serverId === get(activeId)) activeState.set(msg.state);
+        if (msg.serverId === get(activeId)) {
+          activeState.set(msg.state);
+          if (msg.state?.state === 'offline') resetTelemetry();
+        }
         break;
       case 'players':
         if (msg.serverId === get(activeId)) activeState.update((s) => ({ ...s, players: msg.players, playerCount: msg.playerCount }));
@@ -99,14 +104,13 @@
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); }
   }
 
-  // Command palette registry (rebuilds when the view/servers change).
-  $effect(() => {
-    setCommands([
-      { id: 'nav-dashboard', label: 'Go to Dashboard', group: 'Navigate', run: () => (view = 'dashboard') },
-      { id: 'nav-console', label: 'Go to Console', group: 'Navigate', run: () => (view = 'console') },
-      { id: 'add', label: 'Add a server', group: 'Server', run: () => (addOpen = true) }
-    ]);
-  });
+  // Command palette registry. Its run: closures re-read the live $state when
+  // invoked, so this doesn't need to be reactive to view/servers changes.
+  setCommands([
+    { id: 'nav-dashboard', label: 'Go to Dashboard', group: 'Navigate', run: () => (view = 'dashboard') },
+    { id: 'nav-console', label: 'Go to Console', group: 'Navigate', run: () => (view = 'console') },
+    { id: 'add', label: 'Add a server', group: 'Server', run: () => (addOpen = true) }
+  ]);
 
   onMount(() => {
     socket = createSocket(dispatch, () => { const id = get(activeId); if (id) socket.send({ type: 'select', serverId: id }); });
@@ -125,7 +129,11 @@
       {#if $servers.length === 0}
         <EmptyState onadd={() => (addOpen = true)} />
       {:else}
-        <Current onneedsEula={() => (eulaOpen = true)} />
+        {#if views[view]}
+          <Current onneedsEula={() => (eulaOpen = true)} />
+        {:else}
+          <ComingSoon {view} />
+        {/if}
       {/if}
     </div>
   </div>

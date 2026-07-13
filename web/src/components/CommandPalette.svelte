@@ -9,7 +9,7 @@
   const results = $derived(filterCommands($commands, query));
 
   $effect(() => { if ($paletteOpen) { query = ''; selected = 0; inputEl?.focus(); } });
-  $effect(() => { if (selected >= results.length) selected = 0; });
+  $effect(() => { if (selected < 0 || selected >= results.length) selected = 0; });
 
   function onKey(e) {
     if (!$paletteOpen) return;

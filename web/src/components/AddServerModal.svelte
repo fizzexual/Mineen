@@ -15,10 +15,25 @@
   let busy = $state(false);
 
   $effect(() => { if (open && !versions.length) loadVersions(); });
+  $effect(() => { if (open) { name = ''; path = ''; isServer = false; hint = ''; mode = 'download'; } });
 
   async function loadVersions() {
     try { const r = await api.get('/api/versions'); versions = r.versions; version = versions[0] ?? ''; }
     catch (e) { toast('Paper API error: ' + e.message, 'err'); }
+  }
+  let validateTimer;
+  function onPathInput() {
+    clearTimeout(validateTimer);
+    validateTimer = setTimeout(validatePath, 350);
+  }
+  async function validatePath() {
+    const p = path.trim();
+    if (!p) { isServer = false; hint = ''; return; }
+    try {
+      const r = await api.get('/api/browse?path=' + encodeURIComponent(p));
+      isServer = !!r.isServer;
+      hint = r.isServer ? `✓ Server detected${r.jar ? ' (' + r.jar + ')' : ''}` : 'No server jar / server.properties found';
+    } catch { isServer = false; hint = 'Could not read that folder'; }
   }
   async function pick() {
     try {
@@ -57,7 +72,7 @@
       </label>
     {:else}
       <span class="lbl">Your server folder</span>
-      <div class="pick"><input class="mono" bind:value={path} placeholder="C:\\path\\to\\server" /><button onclick={pick}>📁 Browse…</button></div>
+      <div class="pick"><input class="mono" bind:value={path} oninput={onPathInput} placeholder="C:\\path\\to\\server" /><button onclick={pick}>📁 Browse…</button></div>
       <div class="hint {isServer ? 'good' : 'bad'}">{hint || 'Choose your server folder, or paste its path.'}</div>
     {/if}
     {#if installProgress}
