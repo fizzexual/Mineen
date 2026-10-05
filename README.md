@@ -1,9 +1,13 @@
-# 🧊 MineEN Panel
+# 🧊 MineEN Panel 🍂
 
 A self-hosted, web-based control panel for managing a **PaperMC** Minecraft server on your own machine — inspired by hosting panels like Minefort, but it runs locally and controls a real server process.
 
 ![status](https://img.shields.io/badge/status-ready-22c55e)
 [![Docker image](https://img.shields.io/badge/ghcr.io-fizzexual%2Fmineen-2496ed?logo=docker&logoColor=white)](https://github.com/fizzexual/Mineen/pkgs/container/mineen)
+
+## About
+
+MineEN Panel is a web control panel for running PaperMC Minecraft servers on your own computer or home server. It is for players and small communities who host their own server and want a hosting-panel style UI without paying for hosting. It works today for local and LAN use and is published as a Docker image; see the security note before exposing it to the internet.
 
 ## Features
 
